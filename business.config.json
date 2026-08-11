@@ -68,24 +68,28 @@
     "bookingApi": {
       "enabled": false,
       "provider": "gas",
-      "baseUrl": "",
+      "baseUrl": "https://script.google.com/macros/s/AKfycbzbH0MesKOhSBkj2ohXyQcxR7bo2_YfGQ8B0IhaoX1C2aZuQ11zrxWzU9feAumzLkuL/exec",
       "availabilityParam": "date",
       "availabilityResponseKey": "availableSlots"
     },
     "googleCalendar": {
-      "enabled": false,
-      "calendarId": "",
+      "enabled": true,
+      "calendarId": "ecf9d57a37dfc1c0e604064cdac2882a0ef621fdcab67fb8794a94926568096d@group.calendar.google.com",
       "summary": "Business Factory v0.4.1 Google E2E 予約"
     },
     "googleProvisioning": {
-      "status": "not-provisioned",
+      "status": "authorization-required",
       "scriptTitle": "Business Factory v0.4.1 Google E2E Booking API",
       "deploymentDescription": "Business Factory booking web app",
-      "scriptId": "",
-      "deploymentId": "",
-      "webAppUrl": "",
-      "healthcheck": null,
-      "updatedAt": ""
+      "scriptId": "1oagOyc1pNnVyHsiIW1Q-VchyJht7um6DP-tY7-0d5i5ts7e3ZEglmLhq",
+      "deploymentId": "AKfycbzbH0MesKOhSBkj2ohXyQcxR7bo2_YfGQ8B0IhaoX1C2aZuQ11zrxWzU9feAumzLkuL",
+      "webAppUrl": "https://script.google.com/macros/s/AKfycbzbH0MesKOhSBkj2ohXyQcxR7bo2_YfGQ8B0IhaoX1C2aZuQ11zrxWzU9feAumzLkuL/exec",
+      "healthcheck": {
+        "ok": false,
+        "status": 403,
+        "reason": "http-403"
+      },
+      "updatedAt": "2026-08-11T13:09:15.666Z"
     },
     "line": {
       "enabled": false,
