@@ -1,0 +1,91 @@
+name: Business Google Provision
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  provision:
+    if: github.event.issue.user.login == github.repository_owner && startsWith(github.event.issue.title, '[GoogleProvision]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run tests
+        run: npm test
+
+      - name: Show provisioning plan
+        run: npm run google:dry-run
+
+      - name: Prepare Google access token
+        env:
+          GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+          GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+          GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+          GOOGLE_ACCESS_TOKEN: ${{ secrets.GOOGLE_ACCESS_TOKEN }}
+        run: node scripts/google-oauth.mjs
+
+      - name: Provision Google resources
+        shell: bash
+        run: |
+          set -o pipefail
+          node scripts/google-provision.mjs 2>&1 | tee /tmp/google-provision.log
+
+      - name: Persist generated resource identifiers
+        shell: bash
+        run: |
+          if git diff --quiet -- business.config.json; then
+            echo "No config changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add business.config.json
+          git commit -m "Business Factory: persist Google provisioning state"
+          git push origin HEAD:main
+
+      - name: Comment result
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          STATUS=$(jq -r '.integrations.googleProvisioning.status' business.config.json)
+          SCRIPT_ID=$(jq -r '.integrations.googleProvisioning.scriptId' business.config.json)
+          DEPLOYMENT_ID=$(jq -r '.integrations.googleProvisioning.deploymentId' business.config.json)
+          WEBAPP_URL=$(jq -r '.integrations.googleProvisioning.webAppUrl' business.config.json)
+          CALENDAR_ID=$(jq -r '.integrations.googleCalendar.calendarId' business.config.json)
+          SCRIPT_URL="https://script.google.com/home/projects/${SCRIPT_ID}/edit"
+
+          if [ "$STATUS" = "live" ]; then
+            gh issue comment "${{ github.event.issue.number }}" --body "Google Provisioner completed and verified live.\n\n- Calendar ID: \`$CALENDAR_ID\`\n- Script ID: \`$SCRIPT_ID\`\n- Deployment ID: \`$DEPLOYMENT_ID\`\n- Web App: $WEBAPP_URL\n- Status: \`live\`\n\nThe public healthcheck confirmed that the generated Apps Script can access its booking calendar."
+            gh issue close "${{ github.event.issue.number }}" --comment "Google provisioning verified live."
+          else
+            gh issue comment "${{ github.event.issue.number }}" --body "Google resources were created, but the booking API is still fail-closed.\n\n- Calendar ID: \`$CALENDAR_ID\`\n- Script ID: \`$SCRIPT_ID\`\n- Deployment ID: \`$DEPLOYMENT_ID\`\n- Web App: $WEBAPP_URL\n- Status: \`$STATUS\`\n- Apps Script editor: $SCRIPT_URL\n\nIf the status is \`authorization-required\`, open the Apps Script editor, run \`authorizeCalendar\` once as the deploying Google account, approve the requested Calendar permission, then create another \`[GoogleProvision]\` issue. Existing resources will be reused instead of duplicated."
+          fi
+
+      - name: Comment failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          if [ -f /tmp/google-provision.log ]; then
+            DIAG=$(tail -n 20 /tmp/google-provision.log | sed 's/`/\x27/g')
+          else
+            DIAG="Provisioning stopped before the Google API step. Check the stable OAuth connection secrets."
+          fi
+          gh issue comment "${{ github.event.issue.number }}" --body "Google Provisioner failed before verified live activation. No OAuth credential or token was written to git.\n\nDiagnostic:\n\n\`\`\`text\n$DIAG\n\`\`\`\n\nThis issue remains open."

@@ -1,0 +1,11 @@
+{
+  "name": "business-booking-template",
+  "private": true,
+  "version": "0.3.0",
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "google:dry-run": "node scripts/google-provision.mjs --dry-run",
+    "line:dry-run": "node scripts/line-provision.mjs --dry-run"
+  }
+}

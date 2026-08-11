@@ -1,0 +1,89 @@
+{
+  "action": "create",
+  "name": "business-factory-v041-google-e2e",
+  "visibility": "public",
+  "description": "Business Factory v0.4.1 stable Google OAuth E2E",
+  "business": {
+    "name": "Business Factory v0.4.1 Google E2E",
+    "typeLabel": "Google OAuth E2E",
+    "address": "Business Factory専用テスト環境",
+    "email": "",
+    "phone": "",
+    "mapsUrl": "",
+    "lineUrl": "",
+    "logoUrl": ""
+  },
+  "booking": {
+    "type": "booking",
+    "timeZone": "Asia/Tokyo",
+    "slotDurationMinutes": 60,
+    "daysVisible": 14,
+    "minLeadHours": 2,
+    "weeklyHours": {
+      "0": [],
+      "1": [
+        {
+          "start": "10:00",
+          "end": "18:00"
+        }
+      ],
+      "2": [
+        {
+          "start": "10:00",
+          "end": "18:00"
+        }
+      ],
+      "3": [
+        {
+          "start": "10:00",
+          "end": "18:00"
+        }
+      ],
+      "4": [
+        {
+          "start": "10:00",
+          "end": "18:00"
+        }
+      ],
+      "5": [
+        {
+          "start": "10:00",
+          "end": "18:00"
+        }
+      ],
+      "6": []
+    },
+    "menus": [
+      {
+        "id": "test60",
+        "name": "テスト60分",
+        "durationMinutes": 60
+      }
+    ],
+    "staff": [
+      {
+        "id": "owner",
+        "name": "テスト担当"
+      }
+    ]
+  },
+  "google": {
+    "enabled": true
+  },
+  "line": {
+    "enabled": false,
+    "viewType": "full",
+    "scopes": [
+      "openid",
+      "profile"
+    ],
+    "botPrompt": "none"
+  },
+  "theme": {
+    "accent": "#157347",
+    "accentDark": "#0f5132"
+  },
+  "copy": {
+    "headline": "空き状況を確認して、そのまま予約できます。"
+  }
+}

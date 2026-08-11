@@ -1,0 +1,50 @@
+name: Business Booking E2E
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  booking-e2e:
+    if: github.event.issue.user.login == github.repository_owner && startsWith(github.event.issue.title, '[BookingE2E]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run tests
+        run: npm test
+
+      - name: Create one real E2E booking
+        run: node scripts/e2e-booking.mjs
+
+      - name: Comment result
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          MARKER=$(jq -r '.marker' .e2e-booking-result.json)
+          BOOKING_ID=$(jq -r '.bookingId' .e2e-booking-result.json)
+          DATE=$(jq -r '.date' .e2e-booking-result.json)
+          TIME=$(jq -r '.time' .e2e-booking-result.json)
+          CALENDAR_ID=$(jq -r '.calendarId' .e2e-booking-result.json)
+          gh issue comment "${{ github.event.issue.number }}" --body "Booking E2E API call succeeded.\n\n- Marker: \`$MARKER\`\n- Booking ID: \`$BOOKING_ID\`\n- Date: \`$DATE\`\n- Time: \`$TIME\`\n- Calendar ID: \`$CALENDAR_ID\`\n\nThe test event is intentionally left in Calendar for independent verification and cleanup."
+
+      - name: Comment failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue comment "${{ github.event.issue.number }}" --body "Booking E2E failed before Calendar verification. No test cleanup was attempted automatically; inspect the Actions failure before retrying."

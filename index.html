@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="VoiceDev Business Factory booking template">
+  <title>予約システム</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="page" id="app" aria-busy="true">
+    <section class="hero card">
+      <div class="eyebrow" id="businessType">BOOKING</div>
+      <h1 id="businessName">予約システム</h1>
+      <p class="lead" id="headline">店舗情報を読み込み中です。</p>
+      <div class="meta" id="businessMeta"></div>
+    </section>
+
+    <section class="card booking-card">
+      <div class="section-heading">
+        <div>
+          <span class="step">01</span>
+          <h2>予約内容</h2>
+        </div>
+        <span class="status" id="connectionStatus">設定確認中</span>
+      </div>
+
+      <form id="bookingForm">
+        <label>メニュー
+          <select id="menu" name="menu" required></select>
+        </label>
+
+        <label>担当
+          <select id="staff" name="staff" required></select>
+        </label>
+
+        <div class="two-column">
+          <label>希望日
+            <input id="date" name="date" type="date" required>
+          </label>
+          <label>希望時間
+            <select id="time" name="time" required disabled>
+              <option value="">日付を選択</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="section-heading compact">
+          <div><span class="step">02</span><h2>お客様情報</h2></div>
+        </div>
+
+        <label>お名前
+          <input id="name" name="name" autocomplete="name" required>
+        </label>
+        <label>ふりがな
+          <input id="kana" name="kana" required>
+        </label>
+        <label>メールアドレス
+          <input id="email" name="email" type="email" autocomplete="email" required>
+        </label>
+        <label>電話番号
+          <input id="phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" required>
+        </label>
+
+        <button id="submitButton" type="submit">予約内容を送信</button>
+        <p class="form-message" id="formMessage" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section class="card contact-card" id="contactCard">
+      <h2>店舗情報</h2>
+      <p id="address"></p>
+      <div class="contact-actions" id="contactActions"></div>
+    </section>
+
+    <footer>VoiceDev Business Factory Template v0.3</footer>
+  </main>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script type="module" src="./src/app.js"></script>
+</body>
+</html>

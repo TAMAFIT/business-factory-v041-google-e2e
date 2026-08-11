@@ -1,0 +1,133 @@
+name: VoiceDev CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    outputs:
+      publish_ready: ${{ steps.project.outputs.publish_ready }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Resolve VoiceDev project root
+        id: project
+        shell: bash
+        run: |
+          PROJECT_ROOT=$(node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('.voicedev/config.json','utf8'));process.stdout.write(c.projectRoot||'.')")
+          PUBLISH_READY=$(node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('.voicedev/config.json','utf8'));process.stdout.write(c.deployment?.type==='github-pages'?'true':'false')")
+          test -d "$PROJECT_ROOT" || (echo "VoiceDev projectRoot not found: $PROJECT_ROOT" && exit 1)
+          echo "PROJECT_ROOT=$PROJECT_ROOT" >> "$GITHUB_ENV"
+          echo "publish_ready=$PUBLISH_READY" >> "$GITHUB_OUTPUT"
+
+      - name: Install project dependencies when lockfile exists
+        shell: bash
+        run: |
+          cd "$PROJECT_ROOT"
+          if [ -f package-lock.json ]; then npm ci; fi
+
+      - name: Run tests when defined
+        shell: bash
+        run: |
+          cd "$PROJECT_ROOT"
+          if [ -f package.json ] && node -e "const p=require('./package.json');process.exit(p.scripts?.test?0:1)"; then
+            npm test
+          else
+            echo "No npm test script; skipped."
+          fi
+
+      - name: Run build when defined
+        shell: bash
+        run: |
+          cd "$PROJECT_ROOT"
+          if [ -f package.json ] && node -e "const p=require('./package.json');process.exit(p.scripts?.build?0:1)"; then
+            npm run build
+          else
+            echo "No npm build script; skipped."
+          fi
+
+      - name: Assert a web entry point exists
+        shell: bash
+        run: |
+          test -f "$PROJECT_ROOT/index.html" || test -f "$PROJECT_ROOT/dist/index.html" || (echo "index.html or dist/index.html is required under $PROJECT_ROOT" && exit 1)
+
+  deploy:
+    if: needs.validate.outputs.publish_ready == 'true' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Resolve VoiceDev project root
+        shell: bash
+        run: |
+          PROJECT_ROOT=$(node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('.voicedev/config.json','utf8'));process.stdout.write(c.projectRoot||'.')")
+          test -d "$PROJECT_ROOT" || (echo "VoiceDev projectRoot not found: $PROJECT_ROOT" && exit 1)
+          echo "PROJECT_ROOT=$PROJECT_ROOT" >> "$GITHUB_ENV"
+
+      - name: Install dependencies and build when defined
+        shell: bash
+        run: |
+          cd "$PROJECT_ROOT"
+          if [ -f package-lock.json ]; then npm ci; fi
+          if [ -f package.json ] && node -e "const p=require('./package.json');process.exit(p.scripts?.build?0:1)"; then npm run build; fi
+
+      - name: Prepare Pages artifact
+        shell: bash
+        run: |
+          if [ -f "$PROJECT_ROOT/dist/index.html" ]; then
+            SITE_PATH="$PROJECT_ROOT/dist"
+          else
+            SITE_PATH="$RUNNER_TEMP/voicedev-site"
+            mkdir -p "$SITE_PATH"
+            rsync -a \
+              --exclude='.git/' \
+              --exclude='.github/' \
+              --exclude='.voicedev/' \
+              --exclude='AGENTS.md' \
+              --exclude='node_modules/' \
+              "$PROJECT_ROOT/" "$SITE_PATH/"
+          fi
+          echo "SITE_PATH=$SITE_PATH" >> "$GITHUB_ENV"
+          echo "Publishing $SITE_PATH"
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: ${{ env.SITE_PATH }}
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

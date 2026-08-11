@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "profile": "static-site",
+  "productionBranch": "main",
+  "deployment": {
+    "type": "pending",
+    "url": "",
+    "preserveProductionUrl": true,
+    "requiredSecrets": []
+  },
+  "checks": {
+    "test": "auto",
+    "build": "auto",
+    "healthcheckUrl": ""
+  },
+  "handoff": {
+    "runtimeMasterDependency": false,
+    "clientOwnsRuntime": true
+  },
+  "projectRoot": ".",
+  "factory": {
+    "createdBy": "VoiceDev Business Factory",
+    "stage": "business-draft",
+    "sourceRepository": "TAMAFIT/TAMAFIT-voicedev-master",
+    "sourceIssue": 24
+  }
+}

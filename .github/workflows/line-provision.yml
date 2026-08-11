@@ -1,0 +1,82 @@
+name: Business LINE LIFF Provision
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  provision:
+    if: github.event.issue.user.login == github.repository_owner && startsWith(github.event.issue.title, '[LineProvision]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run tests
+        run: npm test
+
+      - name: Show LINE provisioning plan
+        run: npm run line:dry-run
+
+      - name: Provision LIFF app
+        env:
+          LINE_LIFF_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_LIFF_CHANNEL_ACCESS_TOKEN }}
+          LINE_LOGIN_CHANNEL_ID: ${{ secrets.LINE_LOGIN_CHANNEL_ID }}
+          LINE_LOGIN_CHANNEL_SECRET: ${{ secrets.LINE_LOGIN_CHANNEL_SECRET }}
+        shell: bash
+        run: |
+          set -o pipefail
+          node scripts/line-provision.mjs 2>&1 | tee /tmp/line-provision.log
+
+      - name: Persist LIFF public identifiers
+        shell: bash
+        run: |
+          if git diff --quiet -- business.config.json; then
+            echo "No config changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add business.config.json
+          git commit -m "Business Factory: persist LIFF provisioning state"
+          git push origin HEAD:main
+
+      - name: Comment success
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          STATUS=$(jq -r '.integrations.line.status' business.config.json)
+          LIFF_ID=$(jq -r '.integrations.line.liffId' business.config.json)
+          LIFF_URL=$(jq -r '.integrations.line.liffUrl' business.config.json)
+          ENDPOINT_URL=$(jq -r '.integrations.line.endpointUrl' business.config.json)
+          gh issue comment "${{ github.event.issue.number }}" --body "LINE LIFF Provisioner completed and verified.\n\n- Status: \`$STATUS\`\n- LIFF ID: \`$LIFF_ID\`\n- LIFF URL: $LIFF_URL\n- Endpoint: $ENDPOINT_URL\n\nThe endpoint was healthy and the LIFF Server API returned the app on verification."
+          if [ "$STATUS" = "live" ]; then
+            gh issue close "${{ github.event.issue.number }}" --comment "LINE LIFF provisioning verified live."
+          fi
+
+      - name: Comment failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          if [ -f /tmp/line-provision.log ]; then
+            DIAG=$(tail -n 20 /tmp/line-provision.log | sed 's/`/\x27/g')
+          else
+            DIAG="Provisioning stopped before the LINE API step."
+          fi
+          gh issue comment "${{ github.event.issue.number }}" --body "LINE LIFF Provisioner failed before verified activation. No LINE credential was written to git.\n\nDiagnostic:\n\n\`\`\`text\n$DIAG\n\`\`\`\n\nThis issue remains open."
