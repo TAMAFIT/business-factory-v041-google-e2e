@@ -3,15 +3,15 @@
   "profile": "static-site",
   "productionBranch": "main",
   "deployment": {
-    "type": "pending",
-    "url": "",
+    "type": "github-pages",
+    "url": "https://tamafit.github.io/business-factory-v041-google-e2e/",
     "preserveProductionUrl": true,
     "requiredSecrets": []
   },
   "checks": {
     "test": "auto",
     "build": "auto",
-    "healthcheckUrl": ""
+    "healthcheckUrl": "https://tamafit.github.io/business-factory-v041-google-e2e/"
   },
   "handoff": {
     "runtimeMasterDependency": false,
@@ -20,7 +20,7 @@
   "projectRoot": ".",
   "factory": {
     "createdBy": "VoiceDev Business Factory",
-    "stage": "business-draft",
+    "stage": "published-awaiting-connections",
     "sourceRepository": "TAMAFIT/TAMAFIT-voicedev-master",
     "sourceIssue": 24
   }
